@@ -1,7 +1,9 @@
 const puppeteer = require('puppeteer');
 const fs = require("fs");
+const path = require("path")
 
 const BaseURL = 'https://docs.microsoft.com/en-us/cli/azure';
+const Dir = path.join(__dirname, "az");
 
 const removeLastPeriodOfSentence = (string) => {
   return string.endsWith(".") ? string.slice(0, string.length - 2) : string;
@@ -28,6 +30,22 @@ const removeLastPeriodOfSentence = (string) => {
 
   await page.close();
 
+  // The following generate az.ts main azure command file
+
+  fs.writeFileSync("az.ts", `const completionSpec: Fig.Spec = {
+name: "az",
+description: "",
+subcommands: ${JSON.stringify(subCommands)}
+}
+export default completionSpec;`)
+
+console.log("========== az.ts Created ==========")
+
+  if (!fs.existsSync(Dir)){
+    fs.mkdirSync(Dir);
+  }
+
+
   for (const command of subCommands) {
     const arg2URL = `${BaseURL}/${command.name}`;
     const sub_subCommands = await generateAutoComplete(arg2URL, browser);
@@ -40,10 +58,10 @@ const removeLastPeriodOfSentence = (string) => {
 
       export default completionSpec;`;
 
-    fs.writeFile(`${command.name}.ts`, template, (err) => {
-      if (err) throw err;
-      console.log(`File is created successfully for: ${command.name}`);
-    });
+      fs.writeFile(Dir + `/${command.name}.ts`, template, (err) => {
+        if (err) throw err;
+        console.log(`File is created successfully for: ${command.name}`);
+      })
   }
 
   await browser.close();
